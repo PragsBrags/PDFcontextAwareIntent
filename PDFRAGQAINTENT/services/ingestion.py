@@ -4,9 +4,16 @@ from langchain.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter,
 MarkdownTextSplitter
 
-def load_document(file):
+def load_document_pdf(file):
     document = PyPDFLoader(file)
+    
     return document.load()
+
+def load_document_txt(file):
+    with open(file, 'r') as f:
+        content = f.read()
+    
+    return content
 
 def split_document_chunking(document, strategy):
     if strategy == "recursive":
