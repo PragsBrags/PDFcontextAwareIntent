@@ -1,6 +1,6 @@
 from redis import Redis
 
-from app.config import settings
+from config import settings
 
 
 # initialize redis client lazily to avoid import-time errors in tests

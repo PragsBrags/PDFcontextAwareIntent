@@ -2,8 +2,8 @@ from pathlib import Path
 from typing import List
 import ollama
 
-from langchain.document_loaders import PyPDFLoader, TextLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter, MarkdownTextSplitter
+from langchain_community.document_loaders import PyPDFLoader, TextLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter, MarkdownTextSplitter
 
 
 def load_document(file_path: str) -> list:

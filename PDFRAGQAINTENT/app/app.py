@@ -4,12 +4,13 @@ from typing import Optional
 import uuid
 from pathlib import Path
 
-from app.config import settings
-from app.services.ingestion import load_document, split_document_chunking, embedding_chunks
-from app.services.rag import insert_chunks, search_relevant_chunks
-from app.database.redis_cache import get_redis_client
-from app.database.session import DatabaseConnection
-from app.models.documents import Document
+from config import settings
+from services.ingestion import load_document, split_document_chunking, embedding_chunks
+from services.rag import insert_chunks, search_relevant_chunks
+from database.redis_cache import get_redis_client
+from database.session import DatabaseConnection
+from models.documents import Document
+from services.agent import handle_agent_turn
 
 
 app = FastAPI(title="PDF RAG QA Intent")
@@ -50,7 +51,9 @@ async def upload_document(
 
     chunks = split_document_chunking(documents, chunking)
     model = embedding_model or settings.embedding_model
-    embeddings = embedding_chunks(chunks, model)
+
+    chunk_texts = [chunk.page_content for chunk in chunks]
+    embeddings = embedding_chunks(chunk_texts, model)
 
     # persist chunks to vector DB
     insert_chunks([c.page_content if hasattr(c, "page_content") else str(c) for c in chunks], embeddings, file_id, chunking)
@@ -74,8 +77,10 @@ async def query_rag(session_id: str = Form(...), query: str = Form(...)):
     resp = search_relevant_chunks(embeddings[0])
 
     # append interaction to chat history
-    from app.services.memory import append_to_history
+    from services.memory import append_to_history
 
     append_to_history(redis, session_id, query, resp)
 
-    return JSONResponse({"answer": resp})
+    with db_conn.session() as db:
+        answer = await handle_agent_turn(session_id, query, db)
+    return JSONResponse({"answer": answer})

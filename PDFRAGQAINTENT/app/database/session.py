@@ -3,8 +3,8 @@ from contextlib import contextmanager
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.models.documents import Base
-from app.config import settings
+from models.documents import Base
+from config import settings
 
 class DatabaseConnection:
     def __init__(self, database):

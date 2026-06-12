@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     redis_url: str
     qdrant_url: str
     qdrant_collection: str = "document_chunks"
-    embedding_model: str = "nomic-embed-text"
+    embedding_model: str = "embeddinggemma"
     chat_model: str = "llama3.1"
 
     class Config:

@@ -2,13 +2,13 @@ import ollama
 
 from datetime import datetime
 from typing import List, Dict, Any
-from app.services.memory import get_history, append_to_history
-from app.services.rag import search_relevant_chunks
-from app.services.ingestion import embedding_chunks
-from app.models.documents import InterviewInfo
-from app.database.redis_cache import get_redis_client
+from services.memory import get_history, append_to_history
+from services.rag import search_relevant_chunks
+from services.ingestion import embedding_chunks
+from models.documents import InterviewInfo
+from database.redis_cache import get_redis_client
 from sqlalchemy.orm import Session
-from app.config import settings
+from config import settings
 
 from pydantic import BaseModel
 
@@ -24,7 +24,15 @@ class BookingExtractor(BaseModel):
     created_at: datetime
 
 
-def book_interview(name: str, email: str, date: str, time: str) -> str:
+def book_interview(
+    id: str,
+    session_id: str,
+    name: str,
+    email: str,
+    booking_date: datetime,
+    booking_time: datetime,
+    created_at: datetime,
+) -> str:
     return "Intent Captured: Processing database transaction."
 
 

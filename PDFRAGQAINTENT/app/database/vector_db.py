@@ -2,7 +2,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.http import exceptions
 from qdrant_client.http.models import Distance, VectorParams
 
-from app.config import settings
+from config import settings
 
 qdrant_client = QdrantClient(
     url=settings.qdrant_url,
@@ -11,7 +11,7 @@ qdrant_client = QdrantClient(
 def init_vector_db(collection_name:str, vector_dim:int)->None:
     try:
         qdrant_client.get_collection(
-            collection_name=settings.qdrant_collection,
+            collection_name=collection_name,
             )
             
     except (exceptions.UnexpectedResponse, ValueError):

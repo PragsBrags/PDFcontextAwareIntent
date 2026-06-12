@@ -1,10 +1,10 @@
 import uuid
 from typing import List
 from qdrant_client.models import PointStruct
-from app.database.vector_db import qdrant_client
+from database.vector_db import qdrant_client, init_vector_db
+from config import settings
 
-
-COLLECTION_NAME = "chunking"
+COLLECTION_NAME = settings.qdrant_collection
 
 
 def insert_chunks(
@@ -30,7 +30,8 @@ def insert_chunks(
                 payload=payload,
             )
         )
-
+        
+    init_vector_db(settings.qdrant_collection, len(embeddings[0]))
     qdrant_client.upsert(collection_name=COLLECTION_NAME, wait=True, points=points)
 
 
