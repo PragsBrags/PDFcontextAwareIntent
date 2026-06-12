@@ -1,0 +1,5 @@
+.env
+__pycache__/
+tmp_uploads/
+qdrant_storage/
+venv
