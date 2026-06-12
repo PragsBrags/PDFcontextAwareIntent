@@ -12,12 +12,14 @@ class Document(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     file_name: Mapped[str] = mapped_column(String(64), nullable=False)
     file_type: Mapped[str] = mapped_column(String(10), nullable=False)
+    chunking_strategy: Mapped[str] = mapped_column(String(20), nullable=False)
     uploaded_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 class InterviewInfo(Base):
     __tablename__ = "interview_info"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, default=uuid4)
+    session_id: Mapped[str] = mapped_column(String(64), nullable=False)
     name: Mapped[str] = mapped_column(String(64), nullable=False)
     email: Mapped[str] = mapped_column(String(64), nullable=False)
     booking_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
