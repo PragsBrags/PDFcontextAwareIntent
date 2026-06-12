@@ -1,83 +1,87 @@
 import ollama
+
+from datetime import datetime
 from typing import List, Dict, Any
-from services.memory import get_chat_history, message_whistory, append_to_history
-from services.rag import search_relevant_chunks, qdrant_client
+from app.services.memory import get_history, append_to_history
+from app.services.rag import search_relevant_chunks
+from app.services.ingestion import embedding_chunks
+from app.models.documents import InterviewInfo
+from app.database.redis_cache import get_redis_client
+from sqlalchemy.orm import Session
+from app.config import settings
 
 from pydantic import BaseModel
 
+
 class BookingExtractor(BaseModel):
+    id: str
+    session_id: str
+
     name: str
     email: str
-    date: str
-    time: str
+    booking_date: datetime
+    booking_time: datetime
+    created_at: datetime
+
 
 def book_interview(name: str, email: str, date: str, time: str) -> str:
-    """
-    Call this tool ONLY when the user explicitly wants to book, schedule, or reserve an interview slot,
-    AND they have provided all required information (name, email, date, time).
-    Do NOT call this tool if any of these pieces of information are missing.
-    """
-    # This string acts as an instructional docstring that the LLM uses for intent detection
     return "Intent Captured: Processing database transaction."
 
 
 async def handle_agent_turn(session_id: str, user_message: str, db_session: Session) -> str:
-    """
-    The orchestrator service that evaluates user intent on EVERY turn, managing
-    multi-turn conversational context, vector searches, and system actions.
-    """
-    chat_history: List[Dict[str, str]] = await message_whistory(session_id)
-    
-    context_str = "Corporate Policy: Interviews are held Mon-Fri. Candidates must reserve standard slots."
+    redis_client = get_redis_client()
 
-    system_prompt = {
-        "role": "system",
-        "content": (
-            "You are an intelligent HR Assistant. Your goals are to answer user inquiries using "
-            f"the provided Document Context below, or guide them through booking an interview.\n\n"
-            f"DOCUMENT CONTEXT:\n{context_str}\n\n"
-            "CRITICAL: If the user wants to book an interview but hasn't provided their name, email, "
-            "date, or time, do NOT call the tool. Instead, ask them conversationally for the missing details."
-        )
-    }
+    embeddings = embedding_chunks([user_message], settings.embedding_model)
+    query_embedding = embeddings[0] if embeddings else []
 
-    messages = [system_prompt] + chat_history + [{"role": "user", "content": user_message}]
+    document_context = search_relevant_chunks(query_embedding)
+    chat_history = get_history(redis_client, session_id)
 
-    response = ollama.chat(
-        model="llama3.1",  # tool-use capable model
-        messages=messages,
-        tools=[book_interview], 
-    )
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are an HR assistant. Answer using the document context when relevant. "
+                "If the user wants to book an interview, collect name, email, date, and time. "
+                "Only call the booking tool when all fields are present.\n\n"
+                f"DOCUMENT CONTEXT:\n{document_context}"
+            ),
+        },
+        *chat_history,
+        {"role": "user", "content": user_message},
+    ]
 
-    if response.message.tool_calls:
-        for tool in response.message.tool_calls:
-            if tool.function.name == "book_interview":
-                # Intent Detected: Execute Booking Pipeline
-                try:
-                    extracted_data = BookingExtractor(**tool.function.arguments)
-                    
-                    # Store inside your traditional SQL Database
-                    new_booking = InterviewBooking(
-                        name=extracted_data.name,
-                        email=extracted_data.email,
-                        booking_date=extracted_data.date,
-                        time=extracted_data.time
-                    )
-                    db_session.add(new_booking)
-                    db_session.commit()
-                    db_session.refresh(new_booking)
-                    
-                    bot_reply = f"Thank you! Your interview has been securely scheduled for {extracted_data.date} at {extracted_data.time}."
-                except Exception as e:
-                    bot_reply = "I ran into an issue finalizing your booking. Could you verify the details?"
-                
-                # Commit conversational turn to Redis memory and return response
-                await append_to_history(client, session_id, user_message, bot_reply)
-                return bot_reply
+    response = ollama.chat(model=settings.chat_model, messages=messages, tools=[book_interview])
 
-    # Intent Detected: Regular Conversation or Missing Slot Request
-    bot_reply = response.message.content
-    await append_to_history(client, session_id, user_message, bot_reply)
-    return bot_reply
+    # handle tool calls if present
+    tool_calls = []
+    if hasattr(response, "message") and getattr(response.message, "tool_calls", None):
+        tool_calls = response.message.tool_calls
 
+    if tool_calls:
+        for tool in tool_calls:
+            if getattr(tool.function, "name", None) == "book_interview":
+                booking_data = BookingExtractor(**tool.function.arguments)
 
+                booking = InterviewInfo(
+                    id=str(booking_data.id),
+                    session_id=session_id,
+                    name=booking_data.name,
+                    email=str(booking_data.email),
+                    booking_date=booking_data.booking_date,
+                    booking_time=booking_data.booking_time,
+                    created_at=booking_data.created_at,
+                )
+                db_session.add(booking)
+                db_session.commit()
+
+                reply = (
+                    f"Thank you, {booking_data.name}. Your interview is booked for "
+                    f"{booking_data.booking_date} at {booking_data.booking_time}."
+                )
+                append_to_history(redis_client, session_id, user_message, reply)
+                return reply
+
+    reply = getattr(response.message, "content", None) or "I could not generate a response."
+    append_to_history(redis_client, session_id, user_message, reply)
+    return reply

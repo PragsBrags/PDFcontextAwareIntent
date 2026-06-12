@@ -1,0 +1,16 @@
+from pydantic_settings import BaseSettings
+
+
+class Settings(BaseSettings):
+    database_url: str
+    redis_url: str
+    qdrant_url: str
+    qdrant_collection: str = "document_chunks"
+    embedding_model: str = "nomic-embed-text"
+    chat_model: str = "llama3.1"
+
+    class Config:
+        env_file = ".env"
+
+
+settings = Settings()

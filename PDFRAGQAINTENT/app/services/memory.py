@@ -1,23 +1,20 @@
-from langchain_core.chat_history import BaseChatMessageHistory
-from langchain_core.runnables.history import RunnableWithMessageHistory
-from langchain_redis import RedisChatMessageHistory
+import json
+from redis import Redis
+from typing import List, Dict
 
-def get_chat_history(session_id:str, client) -> BaseChatMessageHistory:
-    return RedisChatMessageHistory(session_id=session_id, redis_client=client)
 
-def message_whistory(chain):
-    chain_with_history = RunnableWithMessageHistory(
-        chain,
-        get_session_history=get_chat_history,
-        input_message_key="question",
-        history_message_key="history",
-    )
+def get_history(client: Redis, session_id: str) -> List[Dict[str, str]]:
+    raw_messages = client.lrange(f"chat:{session_id}", 0, -1)
+    return [json.loads(message) for message in raw_messages]
 
-def append_to_history(client, session_id:str, user_message:str, agent_response:str) -> None:
-    history = RedisChatMessageHistory(
-        session_id = session_id,
-        redis_client = client
-    )
 
-    history.add_user_message(user_message)
-    history.add_ai_message(agent_response)
+def append_to_history(
+    client: Redis,
+    session_id: str,
+    user_message: str,
+    assistant_message: str,
+) -> None:
+    key = f"chat:{session_id}"
+    client.rpush(key, json.dumps({"role": "user", "content": user_message}))
+    client.rpush(key, json.dumps({"role": "assistant", "content": assistant_message}))
+    client.expire(key, 60 * 60 * 24)
