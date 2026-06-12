@@ -18,14 +18,15 @@ app = FastAPI(title="PDF RAG QA Intent")
 
 # minimal database configuration
 db_config = {
-    "service": False,
-    "create_tables": False,
+    "service": True,
+    "create_tables": True,
     "echo": False,
     "pool_size": 5,
     "max_overflow": 10,
 }
 
 db_conn = DatabaseConnection(db_config)
+db_conn.create_tables()
 
 
 @app.post("/upload")

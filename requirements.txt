@@ -1,0 +1,38 @@
+# Requirements for PDF RAG QA Intent
+fastapi>=0.95.0
+uvicorn[standard]>=0.18.0
+SQLAlchemy>=2.0
+redis>=4.5.0
+qdrant-client>=1.0.0
+ollama>=0.1.0
+pydantic>=2.0.0
+pydantic-settings>=0.1.0
+langchain>=0.0.250
+langchain-community>=0.0.20
+langchain-text-splitters>=0.6.0
+pypdf>=3.0.0
+python-dotenv>=1.0.0
+requests>=2.28.0
+
+# Optional DB drivers (install as needed):
+# - PostgreSQL: psycopg2-binary
+# - MySQL: mysqlclient# Requirements for PDF RAG QA Intent
+# Core dependencies detected from the codebase
+fastapi
+uvicorn[standard]
+sqlalchemy
+redis
+qdrant-client
+ollama
+pydantic
+pydantic-settings
+langchain
+langchain-community
+langchain-text-splitters
+pypdf
+python-multipart
+typing-extensions
+
+# Optional / platform-specific
+# psycopg2-binary  # if using PostgreSQL
+# python-dotenv    # optional helper for .env files

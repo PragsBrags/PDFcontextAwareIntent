@@ -29,9 +29,9 @@ def book_interview(
     session_id: str,
     name: str,
     email: str,
-    booking_date: datetime,
-    booking_time: datetime,
-    created_at: datetime,
+    booking_date: str,
+    booking_time: str,
+    created_at: str,
 ) -> str:
     return "Intent Captured: Processing database transaction."
 

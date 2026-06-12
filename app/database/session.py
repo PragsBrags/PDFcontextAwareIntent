@@ -8,8 +8,8 @@ from config import settings
 
 class DatabaseConnection:
     def __init__(self, database):
-        self.enabled = database["service"]
-        self.create_tables_startup = database["create_tables"]
+        self.enabled = settings.enabled
+        self.create_tables_startup = settings.create_tables
         self.engine = None
         self.session_factory = None
 

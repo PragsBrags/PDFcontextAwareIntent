@@ -36,9 +36,13 @@ def insert_chunks(
 
 
 def search_relevant_chunks(query_embedding: List[float], top_k: int = 5) -> str:
-    search_result = qdrant_client.search(
-        collection_name=COLLECTION_NAME, query_vector=query_embedding, limit=top_k
+    search_result = qdrant_client.query_points(
+        collection_name=COLLECTION_NAME, query=query_embedding, limit=top_k
     )
 
-    chunks = [hit.payload["text"] for hit in search_result if hit.payload and "text" in hit.payload]
+    chunks = [
+        point.payload["text"]
+        for point in search_result.points
+        if point.payload and "text" in point.payload
+    ]
     return "\n\n---\n\n".join(chunks)
